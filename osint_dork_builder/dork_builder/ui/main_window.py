@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import (
     QWidget, QMainWindow, QListWidget, QListWidgetItem, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QLineEdit, QMessageBox
+    QPushButton, QLabel, QLineEdit, QMessageBox, QInputDialog
 )
 from dork_builder.core.models import DorkCategory
 from dork_builder.core.commands import OpenInBrowserCommand, NoopCommand
@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         self.btn_copy = QPushButton("Copy Query")
         self.btn_open = QPushButton("Open in Google")
         self.btn_clear = QPushButton("Clear")
+        self.btn_add = QPushButton("Add Dork")
 
         right_box = QVBoxLayout()
         right_box.addWidget(QLabel("Query Preview:"))
@@ -43,6 +44,7 @@ class MainWindow(QMainWindow):
         right_box.addWidget(self.btn_copy)
         right_box.addWidget(self.btn_open)
         right_box.addWidget(self.btn_clear)
+        right_box.addWidget(self.btn_add)
         right_box.addStretch(1)
 
         layout = QHBoxLayout(central)
@@ -61,7 +63,9 @@ class MainWindow(QMainWindow):
         self.btn_open.clicked.connect(lambda: self._open_cmd())
         self.btn_copy.clicked.connect(self._on_copy_clicked)
         self.btn_clear.clicked.connect(self._on_clear_clicked)
+        self.btn_add.clicked.connect(self._on_add_clicked)
         self.lst_dorks.itemChanged.connect(self._on_dork_item_changed)
+        self.lst_dorks.itemDoubleClicked.connect(self._on_edit_dork)
 
     def _wire_vm(self) -> None:
         self._vm.categories_changed.connect(self._on_categories_changed)
@@ -132,3 +136,16 @@ class MainWindow(QMainWindow):
     def _on_dork_item_changed(self, item) -> None:
         idx = self.lst_dorks.row(item)
         self._vm.set_dork_checked(idx, item.checkState() == Qt.Checked)
+
+    @Slot()
+    def _on_add_clicked(self) -> None:
+        text, ok = QInputDialog.getText(self, "Add Dork", "Enter dork:")
+        if ok and text.strip():
+            self._vm.add_dork(text)
+
+    @Slot("QListWidgetItem*")
+    def _on_edit_dork(self, item) -> None:
+        idx = self.lst_dorks.row(item)
+        text, ok = QInputDialog.getText(self, "Edit Dork", "Update dork:", text=item.text())
+        if ok and text.strip():
+            self._vm.edit_dork(idx, text)
