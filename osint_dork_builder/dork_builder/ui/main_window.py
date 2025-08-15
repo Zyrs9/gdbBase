@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QAction, QGuiApplication
 from PySide6.QtWidgets import (
     QWidget, QMainWindow, QListWidget, QListWidgetItem, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QLineEdit, QMessageBox, QInputDialog
+    QPushButton, QLabel, QLineEdit, QMessageBox, QInputDialog, QPlainTextEdit
 )
 from dork_builder.core.models import DorkCategory
 from dork_builder.core.commands import OpenInBrowserCommand, NoopCommand
@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
         self.btn_open = QPushButton("Open in Google")
         self.btn_clear = QPushButton("Clear")
         self.btn_add = QPushButton("Add Dork")
+        self.btn_delete = QPushButton("Delete Dork")
 
         right_box = QVBoxLayout()
         right_box.addWidget(QLabel("Query Preview:"))
@@ -45,12 +46,31 @@ class MainWindow(QMainWindow):
         right_box.addWidget(self.btn_open)
         right_box.addWidget(self.btn_clear)
         right_box.addWidget(self.btn_add)
+        right_box.addWidget(self.btn_delete)
         right_box.addStretch(1)
 
-        layout = QHBoxLayout(central)
-        layout.addWidget(self.lst_categories, 2)
-        layout.addWidget(self.lst_dorks, 5)
-        layout.addLayout(right_box, 3)
+        self.txt_shortcuts = QPlainTextEdit()
+        self.txt_shortcuts.setPlainText(
+            "Common dork shortcuts:\n"
+            "site:example.com  - limit results to a specific site\n"
+            "intitle:login     - search page titles\n"
+            "inurl:admin       - search in URLs\n"
+            "filetype:pdf      - find specific file types\n"
+            "\"exact phrase\" - match the exact phrase\n"
+            "-exclude          - omit results containing term\n"
+            "OR                - combine search terms\n"
+            "AND               - require both terms\n"
+            "()                - group terms"
+        )
+
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(self.lst_categories, 2)
+        top_layout.addWidget(self.lst_dorks, 5)
+        top_layout.addLayout(right_box, 3)
+
+        layout = QVBoxLayout(central)
+        layout.addLayout(top_layout)
+        layout.addWidget(self.txt_shortcuts)
 
         act_quit = QAction("Quit", self)
         act_quit.triggered.connect(self.close)
@@ -64,6 +84,7 @@ class MainWindow(QMainWindow):
         self.btn_copy.clicked.connect(self._on_copy_clicked)
         self.btn_clear.clicked.connect(self._on_clear_clicked)
         self.btn_add.clicked.connect(self._on_add_clicked)
+        self.btn_delete.clicked.connect(self._on_delete_clicked)
         self.lst_dorks.itemChanged.connect(self._on_dork_item_changed)
         self.lst_dorks.itemDoubleClicked.connect(self._on_edit_dork)
 
@@ -142,6 +163,18 @@ class MainWindow(QMainWindow):
         text, ok = QInputDialog.getText(self, "Add Dork", "Enter dork:")
         if ok and text.strip():
             self._vm.add_dork(text)
+
+    @Slot()
+    def _on_delete_clicked(self) -> None:
+        items = [self.lst_dorks.item(i).text() for i in range(self.lst_dorks.count())]
+        if not items:
+            return
+        text, ok = QInputDialog.getItem(
+            self, "Delete Dork", "Select dork: ", items, 0, False
+        )
+        if ok and text:
+            index = items.index(text)
+            self._vm.delete_dork(index)
 
     @Slot("QListWidgetItem*")
     def _on_edit_dork(self, item) -> None:
