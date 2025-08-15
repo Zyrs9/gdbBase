@@ -10,6 +10,7 @@ class AppViewModel(QObject):
     categories_changed = Signal(list)
     current_category_changed = Signal(object)  # DorkCategory
     dork_checks_changed = Signal(set)
+    warning = Signal(str)
 
     def __init__(self, repo: DorkRepository) -> None:
         super().__init__()
@@ -67,6 +68,9 @@ class AppViewModel(QObject):
         if not text:
             return
         cat = self._cat_by_key[self._current_key]
+        if text in cat.items:
+            self.warning.emit("Dork already exists.")
+            return
         cat.items.append(text)
         self._repo.save(self._categories)
         self.current_category_changed.emit(cat)
