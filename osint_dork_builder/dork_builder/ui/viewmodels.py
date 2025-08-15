@@ -42,6 +42,74 @@ class AppViewModel(QObject):
     def categories(self) -> List[DorkCategory]:
         return self._categories
 
+    # ------------------------------------------------------------------
+    # Category Management
+    # ------------------------------------------------------------------
+
+    @Slot(str)
+    def add_category(self, label: str) -> None:
+        """Create a new category with the given label."""
+        label = label.strip()
+        if not label:
+            return
+        key = label.lower().replace(" ", "_")
+        if key in self._cat_by_key:
+            return
+        cat = DorkCategory(key=key, label=label, items=[])
+        self._categories.append(cat)
+        self._cat_by_key[key] = cat
+        self._current_key = key
+        self._checked.clear()
+        self._builder.clear()
+        self._repo.save(self._categories)
+        self.categories_changed.emit(self._categories)
+        self.current_category_changed.emit(cat)
+        self.dork_checks_changed.emit(set())
+        self._emit_query()
+
+    @Slot(str)
+    def delete_category(self, key: str) -> None:
+        """Delete the category by key."""
+        if key not in self._cat_by_key:
+            return
+        cat = self._cat_by_key.pop(key)
+        self._categories.remove(cat)
+        was_current = self._current_key == key
+        if was_current:
+            self._current_key = self._categories[0].key if self._categories else None
+            self._checked.clear()
+            self._builder.clear()
+        self._repo.save(self._categories)
+        self.categories_changed.emit(self._categories)
+        if self._current_key and was_current:
+            new_cat = self._cat_by_key[self._current_key]
+            self.current_category_changed.emit(new_cat)
+            self.dork_checks_changed.emit(set())
+            self._emit_query()
+
+    @Slot(str, str)
+    def rename_category(self, key: str, label: str) -> None:
+        """Rename a category identified by key."""
+        if key not in self._cat_by_key:
+            return
+        label = label.strip()
+        if not label:
+            return
+        new_key = label.lower().replace(" ", "_")
+        if new_key != key and new_key in self._cat_by_key:
+            return
+        cat = self._cat_by_key[key]
+        new_cat = DorkCategory(key=new_key, label=label, items=cat.items)
+        idx = self._categories.index(cat)
+        self._categories[idx] = new_cat
+        del self._cat_by_key[key]
+        self._cat_by_key[new_key] = new_cat
+        if self._current_key == key:
+            self._current_key = new_key
+            self.current_category_changed.emit(new_cat)
+        self._repo.save(self._categories)
+        self.categories_changed.emit(self._categories)
+
     @Slot(int, bool)
     def set_dork_checked(self, index: int, checked: bool) -> None:
         if self._current_key is None:
