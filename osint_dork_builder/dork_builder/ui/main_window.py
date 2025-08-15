@@ -10,12 +10,18 @@ from dork_builder.core.models import DorkCategory
 from dork_builder.core.commands import OpenInBrowserCommand, NoopCommand
 from .viewmodels import AppViewModel
 
+
 class MainWindow(QMainWindow):
-    def __init__(self, vm: AppViewModel) -> None:
+    def __init__(self, vm: AppViewModel, open_in_browser: bool = True) -> None:
         super().__init__()
         self.setWindowTitle("OSINT Google Dork Builder")
         self.resize(1100, 700)
         self._vm = vm
+        self._open_cmd = (
+            OpenInBrowserCommand(self._build_url)
+            if open_in_browser
+            else NoopCommand()
+        )
         self._setup_ui()
         self._wire_vm()
         self._vm.initialize()
@@ -75,9 +81,6 @@ class MainWindow(QMainWindow):
         act_quit = QAction("Quit", self)
         act_quit.triggered.connect(self.close)
         self.menuBar().addAction(act_quit)
-
-        self._open_cmd = OpenInBrowserCommand(self._build_url)
-        self._noop_cmd = NoopCommand()
 
         self.lst_categories.currentRowChanged.connect(self._on_category_row_changed)
         self.btn_open.clicked.connect(lambda: self._open_cmd())
