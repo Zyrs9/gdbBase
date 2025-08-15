@@ -3,6 +3,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 from typing import List, Dict, Set
 from dork_builder.core.models import DorkCategory
 from dork_builder.core.query_builder import QueryBuilder
+from dork_builder.core.repository import DorkRepository
 
 class AppViewModel(QObject):
     query_changed = Signal(str)
@@ -10,11 +11,12 @@ class AppViewModel(QObject):
     current_category_changed = Signal(object)  # DorkCategory
     dork_checks_changed = Signal(set)
 
-    def __init__(self, categories: List[DorkCategory]) -> None:
+    def __init__(self, repo: DorkRepository) -> None:
         super().__init__()
-        self._categories = categories
-        self._cat_by_key: Dict[str, DorkCategory] = {c.key: c for c in categories}
-        self._current_key: str | None = categories[0].key if categories else None
+        self._repo = repo
+        self._categories = repo.load()
+        self._cat_by_key: Dict[str, DorkCategory] = {c.key: c for c in self._categories}
+        self._current_key: str | None = self._categories[0].key if self._categories else None
         self._checked: Set[int] = set()
         self._builder = QueryBuilder()
 
@@ -56,3 +58,32 @@ class AppViewModel(QObject):
         self._builder.extend(tokens)
         self.dork_checks_changed.emit(set(self._checked))
         self._emit_query()
+
+    @Slot(str)
+    def add_dork(self, text: str) -> None:
+        if self._current_key is None:
+            return
+        text = text.strip()
+        if not text:
+            return
+        cat = self._cat_by_key[self._current_key]
+        cat.items.append(text)
+        self._repo.save(self._categories)
+        self.current_category_changed.emit(cat)
+
+    @Slot(int, str)
+    def edit_dork(self, index: int, text: str) -> None:
+        if self._current_key is None:
+            return
+        cat = self._cat_by_key[self._current_key]
+        text = text.strip()
+        if not (0 <= index < len(cat.items)) or not text:
+            return
+        cat.items[index] = text
+        if index in self._checked:
+            self._builder.clear()
+            tokens = [cat.items[i] for i in sorted(self._checked)]
+            self._builder.extend(tokens)
+            self._emit_query()
+        self._repo.save(self._categories)
+        self.current_category_changed.emit(cat)

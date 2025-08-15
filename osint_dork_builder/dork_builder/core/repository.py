@@ -30,3 +30,9 @@ class DorkRepository:
             clean = [x.strip() for x in items if isinstance(x, str) and x.strip()]
             cats.append(DorkCategory(key=key, label=label, items=clean))
         return cats
+
+    def save(self, categories: List[DorkCategory]) -> None:
+        data = {c.key: c.items for c in categories}
+        self.json_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.json_path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
