@@ -17,7 +17,10 @@ class AppViewModel(QObject):
         self._current_key: str | None = categories[0].key if categories else None
         self._checked: Set[int] = set()
         self._builder = QueryBuilder()
-        self.categories_changed.emit(categories)
+
+    def initialize(self) -> None:
+        """Emit initial state signals."""
+        self.categories_changed.emit(self._categories)
         if self._current_key:
             self.current_category_changed.emit(self._cat_by_key[self._current_key])
 

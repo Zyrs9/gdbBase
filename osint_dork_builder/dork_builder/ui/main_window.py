@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self._vm = vm
         self._setup_ui()
         self._wire_vm()
+        self._vm.initialize()
 
     def _setup_ui(self) -> None:
         central = QWidget(self)
