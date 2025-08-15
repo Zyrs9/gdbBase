@@ -8,8 +8,8 @@ from dork_builder.ui.main_window import MainWindow
 
 def main() -> int:
     app = QApplication(sys.argv)
-    categories = DorkRepository(SETTINGS.dorks_json_path).load()
-    vm = AppViewModel(categories)
+    repo = DorkRepository(SETTINGS.dorks_json_path)
+    vm = AppViewModel(repo)
     win = MainWindow(vm)
     win.show()
     return app.exec()
