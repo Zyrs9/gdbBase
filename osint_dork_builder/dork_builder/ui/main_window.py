@@ -32,6 +32,9 @@ class MainWindow(QMainWindow):
 
         self.lst_categories = QListWidget()
         self.lst_categories.setSelectionMode(QListWidget.SingleSelection)
+        self.btn_add_cat = QPushButton("Add Category")
+        self.btn_rename_cat = QPushButton("Rename Category")
+        self.btn_del_cat = QPushButton("Delete Category")
 
         self.lst_dorks = QListWidget()
         self.lst_dorks.setSelectionMode(QListWidget.NoSelection)
@@ -69,8 +72,14 @@ class MainWindow(QMainWindow):
             "()                - group terms"
         )
 
+        left_box = QVBoxLayout()
+        left_box.addWidget(self.lst_categories)
+        left_box.addWidget(self.btn_add_cat)
+        left_box.addWidget(self.btn_rename_cat)
+        left_box.addWidget(self.btn_del_cat)
+
         top_layout = QHBoxLayout()
-        top_layout.addWidget(self.lst_categories, 2)
+        top_layout.addLayout(left_box, 2)
         top_layout.addWidget(self.lst_dorks, 5)
         top_layout.addLayout(right_box, 3)
 
@@ -88,6 +97,9 @@ class MainWindow(QMainWindow):
         self.btn_clear.clicked.connect(self._on_clear_clicked)
         self.btn_add.clicked.connect(self._on_add_clicked)
         self.btn_delete.clicked.connect(self._on_delete_clicked)
+        self.btn_add_cat.clicked.connect(self._on_add_category)
+        self.btn_rename_cat.clicked.connect(self._on_rename_category)
+        self.btn_del_cat.clicked.connect(self._on_delete_category)
         self.lst_dorks.itemChanged.connect(self._on_dork_item_changed)
         self.lst_dorks.itemDoubleClicked.connect(self._on_edit_dork)
 
@@ -114,6 +126,12 @@ class MainWindow(QMainWindow):
     @Slot(object)
     def _on_current_category_changed(self, cat: DorkCategory) -> None:
         self._populate_dorks(cat)
+        cats = self._vm.categories()
+        idx = next((i for i, c in enumerate(cats) if c.key == cat.key), -1)
+        if idx >= 0:
+            self.lst_categories.blockSignals(True)
+            self.lst_categories.setCurrentRow(idx)
+            self.lst_categories.blockSignals(False)
 
     @Slot(set)
     def _on_dork_checks_changed(self, checked: set[int]) -> None:
@@ -187,6 +205,42 @@ class MainWindow(QMainWindow):
         if ok and text.strip():
             self._vm.edit_dork(idx, text)
 
+
+    # ------------------------------------------------------------------
+    # Category slots
+    # ------------------------------------------------------------------
+
+    @Slot()
+    def _on_add_category(self) -> None:
+        text, ok = QInputDialog.getText(self, "Add Category", "Enter category name:")
+        if ok and text.strip():
+            self._vm.add_category(text)
+
+    @Slot()
+    def _on_delete_category(self) -> None:
+        cats = self._vm.categories()
+        if not cats:
+            return
+        row = self.lst_categories.currentRow()
+        if not (0 <= row < len(cats)):
+            return
+        label = cats[row].label
+        ret = QMessageBox.question(self, "Delete Category", f"Delete '{label}'?")
+        if ret == QMessageBox.Yes:
+            self._vm.delete_category(cats[row].key)
+
+    @Slot()
+    def _on_rename_category(self) -> None:
+        cats = self._vm.categories()
+        row = self.lst_categories.currentRow()
+        if not (0 <= row < len(cats)):
+            return
+        cur = cats[row]
+        text, ok = QInputDialog.getText(self, "Rename Category", "New name:", text=cur.label)
+        if ok and text.strip():
+            self._vm.rename_category(cur.key, text)
+            
     @Slot(str)
     def _on_warning(self, msg: str) -> None:
         QMessageBox.warning(self, "Warning", msg)
+
