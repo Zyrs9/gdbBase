@@ -10,12 +10,18 @@ from dork_builder.core.models import DorkCategory
 from dork_builder.core.commands import OpenInBrowserCommand, NoopCommand
 from .viewmodels import AppViewModel
 
+
 class MainWindow(QMainWindow):
-    def __init__(self, vm: AppViewModel) -> None:
+    def __init__(self, vm: AppViewModel, open_in_browser: bool = True) -> None:
         super().__init__()
         self.setWindowTitle("OSINT Google Dork Builder")
         self.resize(1100, 700)
         self._vm = vm
+        self._open_cmd = (
+            OpenInBrowserCommand(self._build_url)
+            if open_in_browser
+            else NoopCommand()
+        )
         self._setup_ui()
         self._wire_vm()
         self._vm.initialize()
@@ -85,9 +91,6 @@ class MainWindow(QMainWindow):
         act_quit.triggered.connect(self.close)
         self.menuBar().addAction(act_quit)
 
-        self._open_cmd = OpenInBrowserCommand(self._build_url)
-        self._noop_cmd = NoopCommand()
-
         self.lst_categories.currentRowChanged.connect(self._on_category_row_changed)
         self.btn_open.clicked.connect(lambda: self._open_cmd())
         self.btn_copy.clicked.connect(self._on_copy_clicked)
@@ -105,6 +108,7 @@ class MainWindow(QMainWindow):
         self._vm.current_category_changed.connect(self._on_current_category_changed)
         self._vm.query_changed.connect(self.txt_preview.setText)
         self._vm.dork_checks_changed.connect(self._on_dork_checks_changed)
+        self._vm.warning.connect(self._on_warning)
 
     def _build_url(self) -> str:
         from urllib.parse import quote_plus
@@ -201,6 +205,7 @@ class MainWindow(QMainWindow):
         if ok and text.strip():
             self._vm.edit_dork(idx, text)
 
+
     # ------------------------------------------------------------------
     # Category slots
     # ------------------------------------------------------------------
@@ -234,3 +239,8 @@ class MainWindow(QMainWindow):
         text, ok = QInputDialog.getText(self, "Rename Category", "New name:", text=cur.label)
         if ok and text.strip():
             self._vm.rename_category(cur.key, text)
+            
+    @Slot(str)
+    def _on_warning(self, msg: str) -> None:
+        QMessageBox.warning(self, "Warning", msg)
+
