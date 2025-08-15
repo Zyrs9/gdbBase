@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
         self._vm.current_category_changed.connect(self._on_current_category_changed)
         self._vm.query_changed.connect(self.txt_preview.setText)
         self._vm.dork_checks_changed.connect(self._on_dork_checks_changed)
+        self._vm.warning.connect(self._on_warning)
 
     def _build_url(self) -> str:
         from urllib.parse import quote_plus
@@ -182,3 +183,7 @@ class MainWindow(QMainWindow):
         text, ok = QInputDialog.getText(self, "Edit Dork", "Update dork:", text=item.text())
         if ok and text.strip():
             self._vm.edit_dork(idx, text)
+
+    @Slot(str)
+    def _on_warning(self, msg: str) -> None:
+        QMessageBox.warning(self, "Warning", msg)

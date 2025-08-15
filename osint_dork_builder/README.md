@@ -10,3 +10,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Notes
+
+- Adding a dork that already exists is not allowed. The application will warn you if you try to add a duplicate.
+
