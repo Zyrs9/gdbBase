@@ -87,3 +87,26 @@ class AppViewModel(QObject):
             self._emit_query()
         self._repo.save(self._categories)
         self.current_category_changed.emit(cat)
+
+    @Slot(int)
+    def delete_dork(self, index: int) -> None:
+        if self._current_key is None:
+            return
+        cat = self._cat_by_key[self._current_key]
+        if not (0 <= index < len(cat.items)):
+            return
+        cat.items.pop(index)
+        new_checked: Set[int] = set()
+        for i in self._checked:
+            if i < index:
+                new_checked.add(i)
+            elif i > index:
+                new_checked.add(i - 1)
+        self._checked = new_checked
+        self._builder.clear()
+        tokens = [cat.items[i] for i in sorted(self._checked)]
+        self._builder.extend(tokens)
+        self.dork_checks_changed.emit(set(self._checked))
+        self._repo.save(self._categories)
+        self.current_category_changed.emit(cat)
+        self._emit_query()
