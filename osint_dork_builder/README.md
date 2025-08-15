@@ -9,4 +9,4 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
 ```
-Drop your full `boxpiper_google_dorks.json` next to `app.py`.
+
